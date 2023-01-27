@@ -1,9 +1,9 @@
 
-module "ireland_tgw" {
+module "oregon_tgw" {
   source  = "terraform-aws-modules/transit-gateway/aws"
   version = "~> 2.0"
 
-  name        = "ireland-tgw"
+  name        = "oregon-tgw"
   description = "My TGW shared with several other AWS accounts"
   enable_auto_accept_shared_attachments = true
   share_tgw = false
@@ -11,8 +11,8 @@ module "ireland_tgw" {
 
   vpc_attachments = {
     vpc = {
-      vpc_id       = module.ireland_legacy_vpc.vpc_id
-      subnet_ids   = module.ireland_legacy_vpc.private_subnets
+      vpc_id       = module.oregon_legacy_vpc.vpc_id
+      subnet_ids   = module.oregon_legacy_vpc.private_subnets
       dns_support  = true
       ipv6_support = true
 
@@ -34,14 +34,14 @@ module "ireland_tgw" {
   }
 }
 
-module "ireland_legacy_vpc" {
+module "oregon_legacy_vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 3.0"
 
   name = "leagcy-vpc"
   cidr = "10.2.0.0/16"
 
-  azs             = ["eu-west-1a", "eu-west-1b"]
+  azs             = ["us-west-2a", "us-west-2b"]
   private_subnets = ["10.2.1.0/24", "10.2.2.0/24"]
 
   enable_ipv6                                    = false
@@ -58,7 +58,7 @@ module "ireland_legacy_vpc" {
   resource "aws_security_group" "ping" {
   name        = "legacy-sg"
   description = "Allow ping inbound traffic"
-  vpc_id      = module.ireland_legacy_vpc.vpc_id
+  vpc_id      = module.oregon_legacy_vpc.vpc_id
 
   ingress {
     description      = "ping"
@@ -83,7 +83,7 @@ module "ireland_legacy_vpc" {
   module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 3.0"
-  subnet_id = module.ireland_legacy_vpc.private_subnets[0]
+  subnet_id = module.oregon_legacy_vpc.private_subnets[0]
   name = "legacy-instance"
 
   ami                    = "ami-0ee415e1b8b71305f"

@@ -14,7 +14,7 @@ module "oregon_tgw" {
       vpc_id       = module.oregon_legacy_vpc.vpc_id
       subnet_ids   = module.oregon_legacy_vpc.private_subnets
       dns_support  = true
-      ipv6_support = true
+      ipv6_support = false
 
       # tgw_routes = [
       #   {
@@ -41,8 +41,10 @@ module "oregon_legacy_vpc" {
   name = "leagcy-vpc"
   cidr = "10.2.0.0/16"
 
-  azs             = ["us-west-2a", "us-west-2b"]
-  private_subnets = ["10.2.1.0/24", "10.2.2.0/24"]
+  #azs             = ["us-west-2a", "us-west-2b"]
+  azs             = ["us-west-2a"
+  #private_subnets = ["10.2.1.0/24", "10.2.2.0/24"]
+  private_subnets = ["10.2.1.0/24"]
 
   enable_ipv6                                    = false
   private_subnet_assign_ipv6_address_on_creation = false
@@ -86,17 +88,59 @@ module "oregon_legacy_vpc" {
   subnet_id = module.oregon_legacy_vpc.private_subnets[0]
   name = "legacy-instance"
 
-  ami                    = "ami-0ee415e1b8b71305f"
-  instance_type          = "t2.micro"
+  ami                    = "ami-06e85d4c3149db26a"
+  instance_type          = "t3.micro"
   monitoring             = false
   vpc_security_group_ids = ["${aws_security_group.ping.id}"]
   #vpc_security_group_ids = []
   #subnet_id              = "subnet-eddcdzz4"
-  iam_instance_profile  = "ec2_instance_profile_CloudWAN_Workshop"
+  iam_instance_profile  = "ec2_instance_profile_${var.project_name}"
 
   tags = {
     Terraform   = "true"
     Environment = "dev"
     env         = "legacy"
   }
+  }
+  
+# EC2 IAM ROLE - SSM access
+# IAM instance profile
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "ec2_instance_profile_${var.project_name}"
+  role = aws_iam_role.role_ec2.id
 }
+# IAM role
+data "aws_iam_policy_document" "policy_document" {
+  statement {
+    sid     = "1"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+
+  }
+}
+resource "aws_iam_role" "role_ec2" {
+  name               = "ec2_ssm_role_${var.project_name}"
+  path               = "/"
+  assume_role_policy = <<EOF
+  {
+    "Version": "2012-10-17",
+    "Statement": {
+    "Effect": "Allow",
+    "Principal": {"Service": "ec2.amazonaws.com"},
+    "Action": "sts:AssumeRole"
+  }
+  }
+  EOF
+}
+
+# Policies Attachment to Role
+resource "aws_iam_policy_attachment" "ssm_iam_role_policy_attachment" {
+  name       = "ssm_iam_role_policy_attachment_${var.project_name}"
+  roles      = [aws_iam_role.role_ec2.id]
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+

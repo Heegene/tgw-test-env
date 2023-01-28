@@ -6,7 +6,7 @@
 variable "project_name" {
   type        = string
   description = "Project identifier."
-  default     = "legacy"
+  default     = "oregon-legacy"
 }
 
 variable "aws_region" {
